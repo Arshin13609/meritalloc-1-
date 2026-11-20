@@ -1,0 +1,348 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Private user account and active role preference, storing PII isolated to the account owner.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the account owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Private email address of the authenticated user.",
+          "maxLength": 200
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the user.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "activeRole": {
+          "type": "string",
+          "enum": ["student", "recruiter"],
+          "description": "Currently selected role workspace for the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when account was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when account was last updated."
+        }
+      },
+      "required": ["uid", "email", "displayName", "activeRole", "createdAt", "updatedAt"]
+    },
+    "StudentProfile": {
+      "title": "StudentProfile",
+      "description": "Student academic profile, skills, and project portfolio (no PII).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the student owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Student full name shown to recruiters.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "university": {
+          "type": "string",
+          "description": "University or institution name.",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "major": {
+          "type": "string",
+          "description": "Degree and field of study.",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "graduationYear": {
+          "type": "integer",
+          "description": "Expected graduation year."
+        },
+        "gpa": {
+          "type": "number",
+          "description": "Cumulative GPA on a 4.0 scale."
+        },
+        "preferredTrack": {
+          "type": "string",
+          "description": "Preferred internship engineering or design track.",
+          "maxLength": 120
+        },
+        "availability": {
+          "type": "string",
+          "enum": ["Full-time (12 wks)", "Full-time (16 wks)", "Part-time (20 hrs/wk)"],
+          "description": "Internship availability window."
+        },
+        "projectsSummary": {
+          "type": "string",
+          "description": "Summary of key projects and technical experience.",
+          "maxLength": 2000
+        },
+        "skills": {
+          "type": "array",
+          "description": "List of technical skills with 1-5 proficiency levels (max 25)."
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "Optional portrait URL.",
+          "maxLength": 500
+        },
+        "isPublished": {
+          "type": "boolean",
+          "description": "Whether the student profile is published for recruiter capability evaluation."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of profile creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last profile update."
+        }
+      },
+      "required": [
+        "uid",
+        "name",
+        "university",
+        "major",
+        "graduationYear",
+        "gpa",
+        "preferredTrack",
+        "availability",
+        "projectsSummary",
+        "skills",
+        "isPublished",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "InternshipRole": {
+      "title": "InternshipRole",
+      "description": "Internship role posted by a recruiter with weighted skill requirements and seat count.",
+      "type": "object",
+      "properties": {
+        "recruiterId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the recruiter who posted the role.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "recruiterName": {
+          "type": "string",
+          "description": "Display name of the posting recruiter.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "title": {
+          "type": "string",
+          "description": "Internship role title.",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "company": {
+          "type": "string",
+          "description": "Host company name.",
+          "minLength": 1,
+          "maxLength": 150
+        },
+        "department": {
+          "type": "string",
+          "description": "Department or engineering team.",
+          "maxLength": 120
+        },
+        "location": {
+          "type": "string",
+          "description": "City and work mode.",
+          "maxLength": 120
+        },
+        "duration": {
+          "type": "string",
+          "description": "Internship duration.",
+          "maxLength": 60
+        },
+        "stipend": {
+          "type": "string",
+          "description": "Hourly or monthly stipend.",
+          "maxLength": 60
+        },
+        "seats": {
+          "type": "integer",
+          "description": "Number of open seats for this role."
+        },
+        "minGpa": {
+          "type": "number",
+          "description": "Minimum recommended GPA."
+        },
+        "description": {
+          "type": "string",
+          "description": "Role scope and technical responsibilities.",
+          "maxLength": 2500
+        },
+        "requiredSkills": {
+          "type": "array",
+          "description": "List of required skills with minLevel and weight (max 20)."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "Whether the internship is open for student capability matching."
+        },
+        "isStarterRole": {
+          "type": "boolean",
+          "description": "Whether this role is a shared pre-posted platform internship."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update."
+        }
+      },
+      "required": [
+        "recruiterId",
+        "recruiterName",
+        "title",
+        "company",
+        "department",
+        "location",
+        "duration",
+        "stipend",
+        "seats",
+        "minGpa",
+        "description",
+        "requiredSkills",
+        "isOpen",
+        "isStarterRole",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CapabilityEvaluation": {
+      "title": "CapabilityEvaluation",
+      "description": "Persisted AI capability percentage evaluation linking a student profile and an internship role.",
+      "type": "object",
+      "properties": {
+        "studentId": {
+          "type": "string",
+          "description": "UID of the evaluated student.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "internshipId": {
+          "type": "string",
+          "description": "Document ID of the evaluated internship role.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "recruiterId": {
+          "type": "string",
+          "description": "UID of the recruiter who owns the internship role.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "isStarterRole": {
+          "type": "boolean",
+          "description": "Whether the evaluated internship is a shared pre-posted starter role."
+        },
+        "capabilityPercent": {
+          "type": "integer",
+          "description": "Overall capability percentage (0-100)."
+        },
+        "coreSkillMatchPercent": {
+          "type": "integer",
+          "description": "Core skill alignment percentage (0-100)."
+        },
+        "projectRelevancePercent": {
+          "type": "integer",
+          "description": "Project relevance percentage (0-100)."
+        },
+        "readinessPercent": {
+          "type": "integer",
+          "description": "Onboarding readiness percentage (0-100)."
+        },
+        "matchedSkills": {
+          "type": "array",
+          "description": "Matched skill breakdown (max 25)."
+        },
+        "missingSkills": {
+          "type": "array",
+          "description": "Skill gaps and upskilling tips (max 25)."
+        },
+        "aiRationale": {
+          "type": "string",
+          "description": "AI explanation for the capability percentage.",
+          "maxLength": 1500
+        },
+        "allocationStatus": {
+          "type": "string",
+          "enum": ["Evaluated", "Shortlisted", "Allocated"],
+          "description": "Recruiter placement status for this candidate-role pair."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of evaluation update."
+        }
+      },
+      "required": [
+        "studentId",
+        "internshipId",
+        "recruiterId",
+        "isStarterRole",
+        "capabilityPercent",
+        "coreSkillMatchPercent",
+        "projectRelevancePercent",
+        "readinessPercent",
+        "matchedSkills",
+        "missingSkills",
+        "aiRationale",
+        "allocationStatus",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserAccount" },
+      "description": "Owner-only user account document containing private email and active role preference."
+    },
+    "/studentProfiles/{studentId}": {
+      "schema": { "$ref": "#/entities/StudentProfile" },
+      "description": "Published student profiles and skill portfolios readable by signed-in users and writable only by the owning student."
+    },
+    "/internships/{internshipId}": {
+      "schema": { "$ref": "#/entities/InternshipRole" },
+      "description": "Open internship postings created and managed by recruiters."
+    },
+    "/capabilityEvaluations/{evaluationId}": {
+      "schema": { "$ref": "#/entities/CapabilityEvaluation" },
+      "description": "AI capability percentage scores linking studentId and internshipId, accessible to the owning student and posting recruiter."
+    }
+  }
+}

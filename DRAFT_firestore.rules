@@ -1,0 +1,265 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny all reads and writes by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable hardened global helpers
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && (
+        request.auth.token.email_verified == true ||
+        request.auth.token.firebase.sign_in_provider == 'password'
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserAccount(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'activeRole', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'activeRole', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 200
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.activeRole in ['student', 'recruiter']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidStudentProfile(data) {
+      return data.keys().hasAll([
+          'uid', 'name', 'university', 'major', 'graduationYear', 'gpa',
+          'preferredTrack', 'availability', 'projectsSummary', 'skills',
+          'isPublished', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'name', 'university', 'major', 'graduationYear', 'gpa',
+          'preferredTrack', 'availability', 'projectsSummary', 'skills',
+          'avatarUrl', 'isPublished', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.university is string && data.university.size() >= 1 && data.university.size() <= 150
+        && data.major is string && data.major.size() >= 1 && data.major.size() <= 150
+        && data.graduationYear is int && data.graduationYear >= 2020 && data.graduationYear <= 2035
+        && data.gpa is number && data.gpa >= 0 && data.gpa <= 4.0
+        && data.preferredTrack is string && data.preferredTrack.size() <= 120
+        && data.availability in ['Full-time (12 wks)', 'Full-time (16 wks)', 'Part-time (20 hrs/wk)']
+        && data.projectsSummary is string && data.projectsSummary.size() <= 2000
+        && data.skills is list && data.skills.size() <= 25
+        && (data.skills.size() == 0 || (data.skills[0] is map && data.skills[0].name is string && data.skills[0].name.size() <= 80 && data.skills[0].level is int))
+        && (!('avatarUrl' in data) || (data.avatarUrl is string && data.avatarUrl.size() <= 500))
+        && data.isPublished is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isRecruiterUser() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeRole == 'recruiter';
+    }
+
+    function isValidInternship(data) {
+      return data.keys().hasAll([
+          'recruiterId', 'recruiterName', 'title', 'company', 'department',
+          'location', 'duration', 'stipend', 'seats', 'minGpa',
+          'description', 'requiredSkills', 'isOpen', 'isStarterRole', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'recruiterId', 'recruiterName', 'title', 'company', 'department',
+          'location', 'duration', 'stipend', 'seats', 'minGpa',
+          'description', 'requiredSkills', 'isOpen', 'isStarterRole', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.recruiterId)
+        && data.recruiterId == request.auth.uid
+        && data.recruiterName is string && data.recruiterName.size() >= 1 && data.recruiterName.size() <= 120
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 150
+        && data.company is string && data.company.size() >= 1 && data.company.size() <= 150
+        && data.department is string && data.department.size() <= 120
+        && data.location is string && data.location.size() <= 120
+        && data.duration is string && data.duration.size() <= 60
+        && data.stipend is string && data.stipend.size() <= 60
+        && data.seats is int && data.seats >= 1 && data.seats <= 100
+        && data.minGpa is number && data.minGpa >= 0 && data.minGpa <= 4.0
+        && data.description is string && data.description.size() <= 2500
+        && data.requiredSkills is list && data.requiredSkills.size() >= 1 && data.requiredSkills.size() <= 20
+        && (data.requiredSkills[0] is map && data.requiredSkills[0].name is string && data.requiredSkills[0].name.size() <= 80 && data.requiredSkills[0].minLevel is int && data.requiredSkills[0].weight in ['Core', 'Important', 'Preferred'])
+        && data.isOpen is bool
+        && data.isStarterRole is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCapabilityEvaluation(data) {
+      return data.keys().hasAll([
+          'studentId', 'internshipId', 'recruiterId', 'isStarterRole',
+          'capabilityPercent', 'coreSkillMatchPercent', 'projectRelevancePercent',
+          'readinessPercent', 'matchedSkills', 'missingSkills',
+          'aiRationale', 'allocationStatus', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'studentId', 'internshipId', 'recruiterId', 'isStarterRole',
+          'capabilityPercent', 'coreSkillMatchPercent', 'projectRelevancePercent',
+          'readinessPercent', 'matchedSkills', 'missingSkills',
+          'aiRationale', 'allocationStatus', 'updatedAt'
+        ])
+        && isValidId(data.studentId)
+        && isValidId(data.internshipId)
+        && isValidId(data.recruiterId)
+        && data.isStarterRole is bool
+        && data.capabilityPercent is int && data.capabilityPercent >= 0 && data.capabilityPercent <= 100
+        && data.coreSkillMatchPercent is int && data.coreSkillMatchPercent >= 0 && data.coreSkillMatchPercent <= 100
+        && data.projectRelevancePercent is int && data.projectRelevancePercent >= 0 && data.projectRelevancePercent <= 100
+        && data.readinessPercent is int && data.readinessPercent >= 0 && data.readinessPercent <= 100
+        && data.matchedSkills is list && data.matchedSkills.size() <= 25
+        && (data.matchedSkills.size() == 0 || data.matchedSkills[0] is map)
+        && data.missingSkills is list && data.missingSkills.size() <= 25
+        && (data.missingSkills.size() == 0 || data.missingSkills[0] is map)
+        && data.aiRationale is string && data.aiRationale.size() <= 1500
+        && data.allocationStatus in ['Evaluated', 'Shortlisted', 'Allocated']
+        && data.updatedAt is timestamp;
+    }
+
+    // 1. Private User Account & Role Preference (PII strictly owner-only)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isVerified() && isValidId(userId) && isOwner(userId)
+        && isValidUserAccount(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerified() && isValidId(userId) && isOwner(userId)
+        && isValidUserAccount(incoming())
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'activeRole', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // 2. Student Profiles (PII-free academic & skill portfolios)
+    match /studentProfiles/{studentId} {
+      allow get: if isValidId(studentId) && isSignedIn()
+        && (resource == null || studentId == request.auth.uid || existing().uid == request.auth.uid || existing().isPublished == true);
+      allow list: if isSignedIn()
+        && (existing().uid == request.auth.uid || existing().isPublished == true);
+      allow create: if isVerified() && isValidId(studentId)
+        && isValidStudentProfile(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerified() && isValidId(studentId)
+        && isValidStudentProfile(incoming())
+        && existing().uid == request.auth.uid
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'university', 'major', 'graduationYear', 'gpa',
+          'preferredTrack', 'availability', 'projectsSummary', 'skills',
+          'avatarUrl', 'isPublished', 'updatedAt'
+        ]);
+      allow delete: if isVerified() && isValidId(studentId) && existing().uid == request.auth.uid;
+    }
+
+    // 3. Recruiter Posted & Shared Open Internships
+    match /internships/{internshipId} {
+      allow get: if isValidId(internshipId) && isSignedIn()
+        && (resource == null || existing().recruiterId == request.auth.uid || existing().isOpen == true);
+      allow list: if isSignedIn()
+        && (existing().recruiterId == request.auth.uid || existing().isOpen == true);
+      allow create: if isVerified() && isValidId(internshipId)
+        && isValidInternship(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerified() && isValidId(internshipId)
+        && isValidInternship(incoming())
+        && existing().recruiterId == request.auth.uid
+        && incoming().recruiterId == existing().recruiterId
+        && incoming().isStarterRole == existing().isStarterRole
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'recruiterName', 'title', 'company', 'department', 'location',
+          'duration', 'stipend', 'seats', 'minGpa', 'description',
+          'requiredSkills', 'isOpen', 'updatedAt'
+        ]);
+      allow delete: if isVerified() && isValidId(internshipId)
+        && existing().recruiterId == request.auth.uid;
+    }
+
+    // 4. Persisted AI Capability Evaluations
+    match /capabilityEvaluations/{evaluationId} {
+      allow get: if isValidId(evaluationId) && isSignedIn()
+        && (resource == null || existing().studentId == request.auth.uid || existing().recruiterId == request.auth.uid || existing().isStarterRole == true);
+      allow list: if isSignedIn()
+        && (existing().studentId == request.auth.uid || existing().recruiterId == request.auth.uid || existing().isStarterRole == true);
+
+      allow create: if isVerified() && isValidId(evaluationId)
+        && isValidCapabilityEvaluation(incoming())
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/studentProfiles/$(incoming().studentId))
+        && exists(/databases/$(database)/documents/internships/$(incoming().internshipId))
+        && get(/databases/$(database)/documents/internships/$(incoming().internshipId)).data.recruiterId == incoming().recruiterId
+        && get(/databases/$(database)/documents/internships/$(incoming().internshipId)).data.isStarterRole == incoming().isStarterRole
+        && (
+          (incoming().recruiterId == request.auth.uid)
+          || (incoming().isStarterRole == true && isRecruiterUser())
+          || (incoming().studentId == request.auth.uid && incoming().allocationStatus == 'Evaluated')
+        );
+
+      allow update: if isVerified() && isValidId(evaluationId)
+        && isValidCapabilityEvaluation(incoming())
+        && incoming().studentId == existing().studentId
+        && incoming().internshipId == existing().internshipId
+        && incoming().recruiterId == existing().recruiterId
+        && incoming().isStarterRole == existing().isStarterRole
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Posting recruiter (or active recruiter on shared starter role) evaluates or updates shortlist/allocation status
+          ((existing().recruiterId == request.auth.uid || (existing().isStarterRole == true && isRecruiterUser()))
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'capabilityPercent', 'coreSkillMatchPercent', 'projectRelevancePercent',
+              'readinessPercent', 'matchedSkills', 'missingSkills',
+              'aiRationale', 'allocationStatus', 'updatedAt'
+            ]))
+          ||
+          // Action 2: Student re-evaluates own capability score (cannot escalate allocationStatus)
+          (existing().studentId == request.auth.uid
+            && incoming().allocationStatus == existing().allocationStatus
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'capabilityPercent', 'coreSkillMatchPercent', 'projectRelevancePercent',
+              'readinessPercent', 'matchedSkills', 'missingSkills',
+              'aiRationale', 'updatedAt'
+            ]))
+        );
+
+      allow delete: if isVerified() && isValidId(evaluationId)
+        && (existing().studentId == request.auth.uid || existing().recruiterId == request.auth.uid);
+    }
+  }
+}
