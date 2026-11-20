@@ -503,7 +503,7 @@ function renderStudentView() {
 
 async function scoreStudentAgainstOpenRoles(student) {
   if (state.openInternships.length === 0) return;
-  const res = await fetch('/api/evaluate-student', {
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/api/evaluate-student`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ student, internships: state.openInternships }),
@@ -625,7 +625,7 @@ function renderRecruiterView() {
       state.isScoring = true;
       render();
       try {
-        const res = await fetch('/api/evaluate-role', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/evaluate-student`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ internship: activeRole, students: state.publishedStudents }),

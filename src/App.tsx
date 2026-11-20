@@ -443,7 +443,7 @@ export default function App() {
           uid: firebaseUser.uid,
           ...profile,
         };
-        const res = await fetch('/api/evaluate-student', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/evaluate-student`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -489,7 +489,7 @@ export default function App() {
     setApiError(null);
     setIsScoringStudent(true);
     try {
-      const res = await fetch('/api/evaluate-student', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/evaluate-student`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -532,7 +532,7 @@ export default function App() {
     setApiError(null);
     setIsEvaluatingRole(true);
     try {
-      const res = await fetch('/api/evaluate-role', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/evaluate-role`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -589,7 +589,7 @@ export default function App() {
     setApiError(null);
     setIsAllocatingCohort(true);
     try {
-      const res = await fetch('/api/allocate', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/allocate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -665,7 +665,7 @@ export default function App() {
 
       if (runAiEvaluate && recruiterVisibleRoles.length > 0) {
         setEvaluatingSingleId(profileId);
-        const res = await fetch('/api/evaluate-student', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/evaluate-student`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1087,7 +1087,7 @@ export default function App() {
           if (!firebaseUser || recruiterVisibleRoles.length === 0) return;
           setEvaluatingSingleId(stu.id);
           try {
-            const res = await fetch('/api/evaluate-student', {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/evaluate-student`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ student: stu, internships: recruiterVisibleRoles }),

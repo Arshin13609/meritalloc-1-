@@ -170,7 +170,7 @@ export function StudentPortalView({
     setParseError(null);
     setIsParsingResume(true);
     try {
-      const res = await fetch('/api/parse-resume', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/parse-resume`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resumeText }),

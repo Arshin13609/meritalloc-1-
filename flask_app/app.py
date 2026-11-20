@@ -1,7 +1,7 @@
 """MeritAlloc — Python + Flask backend powered by Gemini (google-genai)."""
 
 from __future__ import annotations
-
+from flask_cors import CORS
 import json
 import os
 from datetime import datetime
@@ -22,6 +22,10 @@ BASE_DIR = Path(__file__).resolve().parent
 FIREBASE_CONFIG_PATH = BASE_DIR.parent / "firebase-applet-config.json"
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
+
+CORS(app, origins=[
+    "https://meritalloc-1.vercel.app"
+])
 
 
 def load_firebase_config() -> dict[str, Any]:
